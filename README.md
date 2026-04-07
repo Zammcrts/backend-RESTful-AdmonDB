@@ -1,7 +1,13 @@
-# Ecommerce API – Parcial 2
-**Nombre:** Edna Samantha Cortes Carrisoza
-**Materia:** Administración de Bases de Datos  
-**Tecnologías:** FastAPI · MySQL · MongoDB Atlas
+# Ecommerce API
+
+![FastAPI](https://img.shields.io/badge/FastAPI-0.111.0-009688?style=for-the-badge&logo=fastapi)
+![MySQL](https://img.shields.io/badge/MySQL-8.0-4479A1?style=for-the-badge&logo=mysql&logoColor=white)
+![MongoDB](https://img.shields.io/badge/MongoDB_Atlas-6.0-47A248?style=for-the-badge&logo=mongodb&logoColor=white)
+![Python](https://img.shields.io/badge/Python-3.10+-3776AB?style=for-the-badge&logo=python&logoColor=white)
+
+> Backend RESTful desarrollado con FastAPI que integra MySQL y MongoDB Atlas. Incluye modelo relacional con restricciones de integridad, transacciones explícitas con ROLLBACK, modelado NoSQL con validación de esquema y un endpoint analítico que combina ambas fuentes de datos.
+
+**Materia:** Administración de Bases de Datos — Parcial 2
 
 ---
 
@@ -11,13 +17,13 @@
 parcial2/
 ├── routes/
 │   ├── __init__.py
-│   ├── usuario.py     # POST /usuarios  GET /usuarios
-│   ├── pedido.py      # POST /pedidos   (transacción explícita)
-│   ├── evento.py      # POST /eventos   GET /eventos/analisis
-│   └── dashboard.py   # GET  /dashboard/resumen
-├── database.py        # Conexión MySQL y MongoDB Atlas
-├── models.py          # Esquemas Pydantic
-├── main.py            # App FastAPI + startup
+│   ├── usuario.py       # POST /usuarios  · GET /usuarios
+│   ├── pedido.py        # POST /pedidos   (transacción explícita)
+│   ├── evento.py        # POST /eventos   · GET /eventos/analisis
+│   └── dashboard.py     # GET  /dashboard/resumen
+├── database.py          # Conexiones MySQL y MongoDB Atlas
+├── models.py            # Esquemas Pydantic
+├── main.py              # App FastAPI + startup automático
 └── requirements.txt
 ```
 
@@ -26,7 +32,7 @@ parcial2/
 ## Instalación
 
 ```bash
-# 1. Crear entorno virtual
+# 1. Crear y activar entorno virtual
 python -m venv venv
 venv\Scripts\activate
 
@@ -37,81 +43,97 @@ pip install -r requirements.txt
 uvicorn main:app --reload
 ```
 
-Swagger UI disponible en → `http://localhost:8000/docs`
+> Swagger UI disponible en `http://localhost:8000/docs`  
+> Las tablas MySQL y la colección MongoDB se crean automáticamente al arrancar.
 
 ---
 
 ## Librerías utilizadas
 
-| Librería | Versión | Para qué |
-|---|---|---|
-| fastapi | 0.111.0 | Framework principal de la API |
-| uvicorn | 0.29.0 | Servidor ASGI para correr FastAPI |
-| mysql-connector-python | 8.3.0 | Conexión a MySQL |
-| motor | 3.4.0 | Conexión asíncrona a MongoDB Atlas |
-| pydantic | 2.7.1 | Validación de datos en los endpoints |
-| dnspython | - | Soporte para URI mongodb+srv:// |
+| Librería | Para qué se usa |
+|---|---|
+| `fastapi` | Framework principal para construir la API REST |
+| `uvicorn` | Servidor ASGI para ejecutar FastAPI |
+| `mysql-connector-python` | Conexión y operaciones con MySQL |
+| `motor` | Conexión asíncrona con MongoDB Atlas |
+| `pydantic` | Validación de datos en los endpoints |
+| `dnspython` | Soporte para la URI `mongodb+srv://` de Atlas |
 
 ---
 
-## Base de datos MySQL – ecommerce_db
+## Base de datos MySQL — `ecommerce_db`
 
 ### Tabla `usuarios`
-| Campo | Restricción |
-|---|---|
-| id | PRIMARY KEY, AUTO_INCREMENT |
-| nombre | VARCHAR(100), NOT NULL |
-| email | VARCHAR(150), NOT NULL, UNIQUE |
+| Campo | Tipo | Restricciones |
+|---|---|---|
+| id | INT | PRIMARY KEY, AUTO_INCREMENT |
+| nombre | VARCHAR(100) | NOT NULL |
+| email | VARCHAR(150) | NOT NULL, UNIQUE |
 
 ### Tabla `pedidos`
-| Campo | Restricción |
-|---|---|
-| id | PRIMARY KEY, AUTO_INCREMENT |
-| usuario_id | NOT NULL, FOREIGN KEY → usuarios(id) |
-| total | DECIMAL(10,2), NOT NULL, CHECK (total >= 0) |
-| descuento_aplicado | DECIMAL(10,2), NOT NULL, DEFAULT 0 |
-| fecha | DATETIME, NOT NULL |
+| Campo | Tipo | Restricciones |
+|---|---|---|
+| id | INT | PRIMARY KEY, AUTO_INCREMENT |
+| usuario_id | INT | NOT NULL, FOREIGN KEY → usuarios(id) |
+| total | DECIMAL(10,2) | NOT NULL, CHECK (total >= 0) |
+| descuento_aplicado | DECIMAL(10,2) | NOT NULL, DEFAULT 0 |
+| fecha | DATETIME | NOT NULL |
 
 ### Tabla `pagos`
-| Campo | Restricción |
-|---|---|
-| id | PRIMARY KEY, AUTO_INCREMENT |
-| pedido_id | NOT NULL, FOREIGN KEY → pedidos(id) |
-| monto | DECIMAL(10,2), CHECK (monto > 0) |
-| fecha_pago | DATETIME, NOT NULL |
+| Campo | Tipo | Restricciones |
+|---|---|---|
+| id | INT | PRIMARY KEY, AUTO_INCREMENT |
+| pedido_id | INT | NOT NULL, FOREIGN KEY → pedidos(id) |
+| monto | DECIMAL(10,2) | CHECK (monto > 0) |
+| fecha_pago | DATETIME | NOT NULL |
 
 ---
 
-## Base de datos MongoDB – ecommerce_logs
+## Base de datos MongoDB — `ecommerce_logs`
 
 ### Colección `eventos_usuario`
-Cada documento cumple el siguiente esquema con `$jsonSchema` validator:
+
+Cada documento es validado con `$jsonSchema` al momento de la inserción:
 
 ```json
 {
-  "usuario_id":  <int, requerido>,
-  "evento":      <string, requerido>,
-  "fecha":       <ISODate, requerido>,
-  "dispositivo": <string, enum: ["web", "mobile"]>,
-  "producto_id": <int, opcional>
+  "usuario_id":  "<int, requerido>",
+  "evento":      "<string, requerido>",
+  "fecha":       "<ISODate, requerido>",
+  "dispositivo": "<string, enum: ['web', 'mobile']>",
+  "producto_id": "<int, opcional>"
 }
 ```
 
 ---
 
+## Endpoints
+
+| Método | Ruta | Descripción |
+|---|---|---|
+| `POST` | `/usuarios` | Crear un usuario |
+| `GET` | `/usuarios` | Listar todos los usuarios |
+| `POST` | `/pedidos` | Crear pedido + pago en transacción |
+| `POST` | `/eventos` | Registrar evento en MongoDB |
+| `GET` | `/eventos/analisis` | Evento más frecuente + total |
+| `GET` | `/dashboard/resumen` | Resumen integrado MySQL + MongoDB |
+
+---
+
 ## Pruebas documentadas
 
-### 1. POST /usuarios – Crear usuario
+### POST /usuarios
+<details>
+<summary>Ver prueba</summary>
 
-**Body:**
+**Request body:**
 ```json
 {
   "nombre": "Ara",
   "email": "ara.papoi@gmail.com"
 }
 ```
-
-**Respuesta 200:**
+**Response `200`:**
 ```json
 {
   "id": 1,
@@ -119,20 +141,22 @@ Cada documento cumple el siguiente esquema con `$jsonSchema` validator:
   "email": "ara.papoi@gmail.com"
 }
 ```
+</details>
 
 ---
 
-### 2. POST /pedidos – Crear pedido con transacción
+### POST /pedidos — con descuento automático
+<details>
+<summary>Ver prueba</summary>
 
-**Body (total > 1000 → descuento 10%):**
+**Request body:** (`total > 1000` aplica 10% de descuento automáticamente)
 ```json
 {
   "usuario_id": 1,
   "total": 1500
 }
 ```
-
-**Respuesta 200:**
+**Response `200`:**
 ```json
 {
   "pedido_id": 1,
@@ -144,15 +168,17 @@ Cada documento cumple el siguiente esquema con `$jsonSchema` validator:
 }
 ```
 
-> El pedido y el pago se insertan dentro de una **transacción explícita**.  
-> Si cualquier INSERT falla → **ROLLBACK** completo, no queda ningún registro.  
-> El descuento del 10% se calcula automáticamente cuando `total > 1000`.
+> El pedido y el pago se insertan dentro de una transacción explícita.  
+> Si cualquier INSERT falla se ejecuta ROLLBACK completo, no queda ningún registro.
+</details>
 
 ---
 
-### 3. POST /eventos – Registrar evento en MongoDB
+### POST /eventos — registro en MongoDB
+<details>
+<summary>Ver prueba</summary>
 
-**Body:**
+**Request body:**
 ```json
 {
   "usuario_id": 1,
@@ -162,8 +188,7 @@ Cada documento cumple el siguiente esquema con `$jsonSchema` validator:
   "producto_id": 42
 }
 ```
-
-**Respuesta 200:**
+**Response `200`:**
 ```json
 {
   "msg": "Evento registrado",
@@ -177,26 +202,32 @@ Cada documento cumple el siguiente esquema con `$jsonSchema` validator:
   }
 }
 ```
+</details>
 
 ---
 
-### 4. GET /eventos/analisis – Análisis con agregación MongoDB
+### GET /eventos/analisis — agregación MongoDB
+<details>
+<summary>Ver prueba</summary>
 
-Pipeline utilizado: `$group → $sort → $limit`
+Pipeline usado: `$group → $sort → $limit`
 
-**Respuesta 200:**
+**Response `200`:**
 ```json
 {
   "evento_mas_frecuente": "click_producto",
   "total_eventos": 3
 }
 ```
+</details>
 
 ---
 
-### 5. GET /dashboard/resumen – Endpoint integrado MySQL + MongoDB
+### GET /dashboard/resumen — integración MySQL + MongoDB
+<details>
+<summary>Ver prueba</summary>
 
-**Respuesta 200:**
+**Response `200`:**
 ```json
 {
   "ventas": {
@@ -210,5 +241,6 @@ Pipeline utilizado: `$group → $sort → $limit`
 }
 ```
 
-> `ventas` proviene de **MySQL** (SUM y AVG sobre la tabla pedidos).  
-> `eventos` proviene de **MongoDB Atlas** (agregación + count).
+> `ventas` proviene de una consulta SUM y AVG sobre la tabla pedidos en MySQL.  
+> `eventos` proviene de una agregación y count_documents en MongoDB Atlas.
+</details>
